@@ -2,13 +2,12 @@
 {% block title %}Index{% endblock %}
 {% block head %}
     {{ super() }}
-    <style type="text/css">
-        .important { color: #336699; }
-    </style>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
 {% endblock %}
 {% block content %}
     <h1>Index</h1>
     <p class="important">
       Welcome to my awesome homepage.
     </p>
+    <img src="{{ url_for('static', filename='images/game_images/speed.png') }}">
 {% endblock %}

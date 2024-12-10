@@ -2,14 +2,12 @@
 {% block title %}{{ name }}'s Watchlist{% endblock %}
 {% block head %}
     {{ super() }}
-    <style type="text/css">
-        .important { color: #336699; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/movies.css') }}" type="text/css">
 {% endblock %}
 {% block content %}
     <h2>{{ name }}'s Watchlist</h2>
     <p>{{ movies|length }} Titles</p>
-    <ul>
+    <ul class="movie-list">
         {% for movie in movies %}  
         <li>{{ movie.title }} - {{ movie.year }}</li>  
         {% endfor %} 
