@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ name }}'s Watchlist{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style type="text/css">
+        .important { color: #336699; }
+    </style>
+{% endblock %}
+{% block content %}
+    <h2>{{ name }}'s Watchlist</h2>
+    <p>{{ movies|length }} Titles</p>
+    <ul>
+        {% for movie in movies %}  
+        <li>{{ movie.title }} - {{ movie.year }}</li>  
+        {% endfor %} 
+    </ul>
+{% endblock %}
