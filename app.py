@@ -40,7 +40,6 @@ def user_page(name):
 @app.route('/movies', methods=['GET', 'POST'])
 def movies():
     if request.method == 'POST':
-        print(request.form)
         if "submit" in request.form:
             title = request.form.get('title')
             year = request.form.get('year')
@@ -68,8 +67,36 @@ def movies():
             flash('Item deleted')
             return redirect(url_for('movies'))
         
+        elif "edit" in request.form:
+            movie_id = request.form.get('movie_id')
+            return redirect(url_for('edit', movie_id=movie_id))
+        
     elif request.method == "GET":
         return render_template('movies.html')
+
+@app.route('/movies/edit/<int:movie_id>', methods=["GET", "POST"])
+def edit(movie_id):
+    movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
+
+    if request.method == "POST":
+        title = request.form.get('title')
+        year = request.form.get('year')
+
+        if not title or not year.isdigit() or len(year) != 4 or len(title) > 60:
+            flash('Invalid input.')
+            return redirect(url_for('edit', movie_id=movie_id))
+    
+        movie.title = title
+        movie.year = year
+        db.session.commit()
+
+        link = url_for("movies")
+        flash(f'Successfully updated! Click <a href={link}>here</a> to return to the movies list.')
+        return redirect(url_for('edit', movie_id=movie_id))
+    
+    if request.method == "GET":
+        return render_template('edit.html')
+
 
 @app.route('/games')
 def games():
@@ -112,6 +139,12 @@ movies_data = [
     {'title': 'WALL-E', 'year': '2008'},
     {'title': 'The Pork of Music', 'year': '2012'},
 ]
+
+
+
+# db.session.execute(db.Table.insert(), movies_data)
+# db.session.commit()
+
 
 with app.app_context():
     class GameDetails(db.Model):

@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% block title %}{{ user.name }}'s Watchlist{% endblock %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/movies.css') }}" type="text/css">
@@ -10,8 +9,9 @@
         {% for movie in movies %}  
         <li>{{ movie.title }} - {{ movie.year }}</a>
             <span class="float-right">
-                <a class="imdb btn" href="https://www.imdb.com/search/title/?title={{ movie.title }}" target="_blank" title="Find this movie on IMDb">IMDb</a>
+                <a class="imdb" href="https://www.imdb.com/search/title/?title={{ movie.title }}" target="_blank" title="Find this movie on IMDb">IMDb</a>
                 <form method="post" style="display:inline;">
+                    <input type="hidden" name="movie_id" value="{{ movie.id }}">
                     <button class="btn edit" type="submit" name="edit">Edit</button>
                 </form>
                 <form method="post" style="display:inline;">

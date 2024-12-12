@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     {% block head %}
-    <title>{% block title %}{% endblock %}</title>
+    <title>{{ user.name }}'s Watchlist</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}" type="text/css">
     {% endblock %}
 </head>
@@ -16,7 +16,7 @@
         </ul>
     </nav>
     {% for message in get_flashed_messages() %}
-	<div class="alert">{{ message }}</div>
+	    <div class="alert">{{ message|safe }}</div>
     {% endfor %}
     <div id="content">{% block content %}{% endblock %}</div>
     <div id="footer" class="footer">
