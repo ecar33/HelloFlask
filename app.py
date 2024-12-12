@@ -1,4 +1,7 @@
 from flask import Flask, render_template, request, redirect, flash, url_for, abort
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField, HiddenField
+from wtforms.validators import DataRequired
 from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -21,6 +24,16 @@ class Movie(db.Model):
     title = db.Column(db.String(60))  
     year = db.Column(db.String(4))
 
+class AddMovieForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    year = StringField('Year', validators=[DataRequired()])
+    submit = SubmitField('Add')
+
+class DeleteMovieForm(FlaskForm):
+    movie_id = HiddenField('Movie ID')
+    submit = SubmitField('Delete')
+
+
 @app.cli.command()
 @click.option('--drop', is_flag=True, help='Create after drop.')
 def initdb(drop):
@@ -39,23 +52,23 @@ def user_page(name):
 
 @app.route('/movies', methods=['GET', 'POST'])
 def movies():
+    add_movie_form = AddMovieForm()
+    delete_movie_form = DeleteMovieForm()
+
     if request.method == 'POST':
-        if "submit" in request.form:
-            title = request.form.get('title')
-            year = request.form.get('year')
+        if add_movie_form.validate_on_submit():
+            title = add_movie_form.title.data
+            year = add_movie_form.year.data
         
-            if not title or not year.isdigit() or len(year) != 4 or len(title) > 60:
-                flash('Invalid input.')
-                return redirect(url_for('movies'))
-                    
             movie = Movie(title=title, year=year)
             db.session.add(movie)
             db.session.commit()
             flash('Item Created.')
             return redirect(url_for('movies'))
         
-        elif "delete" in request.form:
-            movie_id = request.form.get('movie_id')
+        elif delete_movie_form.validate_on_submit():
+            print(f'Movie id is: {delete_movie_form.movie_id.data}')
+            movie_id = delete_movie_form.movie_id.data
             movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
 
             if not movie:
@@ -72,7 +85,7 @@ def movies():
             return redirect(url_for('edit', movie_id=movie_id))
         
     elif request.method == "GET":
-        return render_template('movies.html')
+        return render_template('movies.html', add_movie_form=add_movie_form, delete_movie_form=delete_movie_form)
 
 @app.route('/movies/edit/<int:movie_id>', methods=["GET", "POST"])
 def edit(movie_id):

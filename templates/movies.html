@@ -5,27 +5,32 @@
 {% endblock %}
 {% block content %}
     <p>{{ movies|length }} Titles</p>
+    <form method="POST">
+        {{ add_movie_form.hidden_tag() }}
+        {{ add_movie_form.title.label }} {{ add_movie_form.title(size=20) }}
+        {{ add_movie_form.year.lablel }} {{ add_movie_form.year(size=6) }}
+        <div class="submit-container">
+            {{ add_movie_form.submit() }}
+        </div>
+    </form>
     <ul class="movie-list">
         {% for movie in movies %}  
         <li>{{ movie.title }} - {{ movie.year }}</a>
             <span class="float-right">
                 <a class="imdb" href="https://www.imdb.com/search/title/?title={{ movie.title }}" target="_blank" title="Find this movie on IMDb">IMDb</a>
-                <form method="post" style="display:inline;">
+                <form method="POST" style="display:inline;">
                     <input type="hidden" name="movie_id" value="{{ movie.id }}">
                     <button class="btn edit" type="submit" name="edit">Edit</button>
                 </form>
-                <form method="post" style="display:inline;">
-                    <input type="hidden" name="movie_id" value="{{ movie.id }}">
-                    <button class="btn delete" type="submit" name="delete">X</button>
+                <form method="POST" style="display:inline;">
+                    <div class="delete-button-container">
+                        {{ delete_movie_form.csrf_token() }}
+                        {{ delete_movie_form.movie_id(value=movie.id) }}
+                        {{ delete_movie_form.submit() }}
+                    </div>
                 </form>
             </span> 
         </li> 
         {% endfor %} 
     </ul>
-    <p>{{ movies|length }} Titles</p>
-    <form method="post">
-        Name <input type="text" name="title" autocomplete="off" required> 
-        Year <input type="text" name="year" autocomplete="off" required> 
-        <button class="btn" type="submit" name="submit">Add</button>
-    </form>
 {% endblock %}

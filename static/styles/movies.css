@@ -66,6 +66,26 @@ input[name=year] {
     border-radius: 5px;
 }
 
+.submit-container {
+    display:inline;
+    border-radius: 5px;
+}
+
+.submit-container input {
+    background-color:rgb(255, 255, 255);
+    border-radius: 5px;
+}
+
+.delete-button-container {
+    display:inline;
+}
+
+.submit-container input:hover {
+    text-decoration: none;
+    background-color: black;
+    color: white;
+}
+
 .btn.delete {
     background-color:red;
     color:white;
@@ -90,3 +110,4 @@ input[name=year] {
     color: white;
     border: 1px solid black;
 }
+
