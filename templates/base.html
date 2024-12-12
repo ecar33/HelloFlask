@@ -7,10 +7,18 @@
     {% endblock %}
 </head>
 <body>
+    <h2>{{ user.name }}'s Lists</h2>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('movies') }}">Movies</a></li>
+            <li><a href="{{ url_for('games') }}">Games</a></li>
+        </ul>
+    </nav>
     <div id="content">{% block content %}{% endblock %}</div>
     <div id="footer" class="footer">
         {% block footer %}
-        &copy; Copyright 2008 by <a href="http://domain.invalid/">you</a>.
+        &copy; Copyright 2024 by {{ user.name }}
         {% endblock %}
     </div>
 </body>

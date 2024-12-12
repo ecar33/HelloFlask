@@ -29,8 +29,6 @@ footer {
     background-color: #f8f9fa;
 }
 
-.totoro {
-    display: block;
-    margin: 0 auto;
-    height: 100px;
+.float-right {
+    float: right;
 }

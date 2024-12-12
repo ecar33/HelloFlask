@@ -1,15 +1,18 @@
 {% extends "base.html" %}
-{% block title %}{{ name }}'s Watchlist{% endblock %}
+{% block title %}{{ user.name }}'s Watchlist{% endblock %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/games.css') }}" type="text/css">
 {% endblock %}
 {% block content %}
-    <h2>{{ name }}'s Favorite Games</h2>
     <p>{{ game_details|length }} Titles</p>
     <ul class="game-list">
         {% for name, released in game_details %}  
-        <li>{{ game.name }} - {{ game.released }}</li>  
+        <li>{{ name }}
+            <span class="float-right">
+                {{ released }}
+            </span>
+        </li>  
         {% endfor %} 
     </ul>
 {% endblock %}

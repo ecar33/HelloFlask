@@ -14,7 +14,6 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True) 
     name = db.Column(db.String(20))
 
-
 class Movie(db.Model): 
     __tablename__ = "my_favorite_movies"
     id = db.Column(db.Integer, primary_key=True) 
@@ -30,7 +29,7 @@ def initdb(drop):
     click.echo('Initialized database.')
 
 @app.route('/')
-def hello():
+def index():
     return render_template('index.html')
 
 @app.route('/user/<name>')
@@ -39,17 +38,35 @@ def user_page(name):
 
 @app.route('/movies')
 def movies():
-    stmnt = db.select(Movie)
-    result = db.session.execute(stmnt).scalars().all()
-    return render_template('movies.html', name=name, movies=result)
+    return render_template('movies.html')
 
 @app.route('/games')
 def games():
-    stmnt = db.select(GameDetails.name, GameDetails.released)
-    result = db.session.execute(stmnt).fetchmany(10)
-    print(result)
-    return render_template('games.html', name=name, game_details=result)
+    games_list_start = []
+    games_list = []
 
+    stmnt = db.select(GameDetails.name, GameDetails.released).where(GameDetails.name.like("Metal Gear%"))
+    games_list_start.append(db.session.execute(stmnt).fetchmany(3))
+
+    stmnt = db.select(GameDetails.name, GameDetails.released).where(GameDetails.metacritic > 90).order_by(GameDetails.metacritic)
+    games_list_start.append(db.session.execute(stmnt).fetchmany(7))
+
+    games_list = [item for sub_list in games_list_start for item in sub_list]
+
+    print(games_list)
+    return render_template('games.html', game_details=games_list)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html')
+
+@app.context_processor
+def inject_user():
+    stmnt = db.select(User)
+    user = db.session.execute(stmnt).scalars().first()
+    movie_list = db.session.execute(db.select(Movie)).scalars().all()
+    return dict(user=user, movies=movie_list)
+    
 
 name = 'Evan Carlile'
 movies_data = [
@@ -71,7 +88,6 @@ with app.app_context():
 
     class GamesPlatforms(db.Model):
         __table__ = db.Table("games_platforms", db.metadata, autoload_with=db.engine)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
