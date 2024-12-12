@@ -15,6 +15,9 @@
             <li><a href="{{ url_for('games') }}">Games</a></li>
         </ul>
     </nav>
+    {% for message in get_flashed_messages() %}
+	<div class="alert">{{ message }}</div>
+    {% endfor %}
     <div id="content">{% block content %}{% endblock %}</div>
     <div id="footer" class="footer">
         {% block footer %}

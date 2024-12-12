@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, flash, url_for
 from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -7,6 +7,7 @@ import click
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.root_path, 'games.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'dev'
 
 db: SQLAlchemy = SQLAlchemy(app)
 
@@ -36,9 +37,39 @@ def index():
 def user_page(name):
     return f'User page for: {escape(name)}'
 
-@app.route('/movies')
+@app.route('/movies', methods=['GET', 'POST'])
 def movies():
-    return render_template('movies.html')
+    if request.method == 'POST':
+        print(request.form)
+        if "submit" in request.form:
+            title = request.form.get('title')
+            year = request.form.get('year')
+        
+            if not title or not year.isdigit() or len(year) != 4 or len(title) > 60:
+                flash('Invalid input.')
+                return redirect(url_for('movies'))
+                    
+            movie = Movie(title=title, year=year)
+            db.session.add(movie)
+            db.session.commit()
+            flash('Item Created.')
+            return redirect(url_for('movies'))
+        
+        elif "delete" in request.form:
+            movie_id = request.form.get('movie_id')
+            movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
+
+            if not movie:
+                flash('Movie not found.')
+                return redirect(url_for('movies'))
+
+            db.session.delete(movie)
+            db.session.commit()
+            flash('Item deleted')
+            return redirect(url_for('movies'))
+        
+    elif request.method == "GET":
+        return render_template('movies.html')
 
 @app.route('/games')
 def games():
@@ -91,3 +122,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
