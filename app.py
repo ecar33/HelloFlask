@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash, url_for
+from flask import Flask, render_template, request, redirect, flash, url_for, abort
 from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -116,7 +116,20 @@ def games():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html')
+    return render_template('errors/404.html')
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('errors/500.html')
+
+@app.errorhandler(400)
+def bad_request(e):
+    return render_template('errors/400.html')
+
+# To force a 500 http error for testing
+# @app.route('/force500')
+# def force_500():
+#     abort(500)
 
 @app.context_processor
 def inject_user():
@@ -140,9 +153,13 @@ movies_data = [
     {'title': 'The Pork of Music', 'year': '2012'},
 ]
 
-
-
-# db.session.execute(db.Table.insert(), movies_data)
+# To insert a list of dictionaries like so into a table:
+# movies_table = db.Table(
+#     'my_favorite_movies',  # Name of the table in the database
+#     db.metadata,  # SQLAlchemy metadata
+#     autoload_with=db.engine  # Automatically load the table's schema
+# )
+# db.session.execute(movies_table.insert(), movies_data)
 # db.session.commit()
 
 
