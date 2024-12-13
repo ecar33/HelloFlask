@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, redirect, flash, url_for, abort
+from flask import Flask, render_template, request, redirect, flash, url_for, Blueprint
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, HiddenField
-from wtforms.validators import DataRequired
+from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from wtforms import PasswordField, StringField, SubmitField, HiddenField
+from wtforms.validators import DataRequired, Length
 from markupsafe import escape
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -12,11 +14,27 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.root_pat
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'dev'
 
-db: SQLAlchemy = SQLAlchemy(app)
+movies_bp = Blueprint('movies', __name__, url_prefix='/movies')
 
-class User(db.Model):  
+db: SQLAlchemy = SQLAlchemy(app)
+login_manager = LoginManager(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    user = db.session.execute(db.select(User).where(User.id == user_id)).scalars().first()
+    return user
+
+class User(db.Model, UserMixin):  
     id = db.Column(db.Integer, primary_key=True) 
     name = db.Column(db.String(20))
+    username = db.Column(db.String(20))
+    password_hash = db.Column(db.String(128))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def validate_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Movie(db.Model): 
     __tablename__ = "my_favorite_movies"
@@ -33,6 +51,14 @@ class DeleteMovieForm(FlaskForm):
     movie_id = HiddenField('Movie ID')
     submit = SubmitField('Delete')
 
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+
+class SettingsForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(1, 20)])
+    submit = SubmitField('Update Name')
+
 
 @app.cli.command()
 @click.option('--drop', is_flag=True, help='Create after drop.')
@@ -42,56 +68,155 @@ def initdb(drop):
     db.create_all()
     click.echo('Initialized database.')
 
+@app.cli.command()
+@click.option('--username', prompt=True, help='The username used to login.')
+@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True, help='The password used to login')
+def admin(username, password):
+    db.create_all()
+
+    user = db.session.execute(db.select(User)).scalars().first()
+
+    if user is not None:
+        click.echo('Updating user...')
+        user.username = username
+        user.set_password(password)
+    else:
+        click.echo('Creating user...')
+        user = User(username=username, name='Admin')
+        user.set_password(password)
+        db.session.add(user)
+    
+    db.session.commit()
+    click.echo('Done.')
+
+@app.cli.command()
+@click.option('--username', prompt="Enter the username: ", help='The username used to login.')
+@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True, help='The password used to login')
+def check_password(username, password):    
+    while True:
+        user: User = db.session.execute(db.select(User).where(User.username == username)).scalars().first()
+
+        if user is not None:
+            break
+        else:
+            click.echo('User does not exist!')
+            username = click.prompt('Enter the username: ')
+
+    while True:
+        if user.validate_password(password):
+            print("Password is correct.")
+            break
+        else:
+            print("Password is incorrect")
+
+        password = click.prompt('Enter the correct password: ', hide_input=True, confirmation_prompt=True)
+
+    click.echo("Done.")
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/login', methods=["GET", "POST"])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+
+        if not username or not password:
+            flash('Invalid input.')
+            return redirect(url_for('login'))
+        
+        user: User = db.session.execute(db.select(User).where(User.username == username)).scalars().first()
+
+        if user.username == username and user.validate_password(password):
+            login_user(user)
+            flash(f'{user.name} sucessfully logged in.')
+            return redirect(url_for('index'))
+        
+        flash('Invalid username or password')
+        return redirect(url_for("login"))
+        
+    return render_template('login.html', form=form)
+    
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Goodbye')
+    return redirect(url_for('login'))
+
 @app.route('/user/<name>')
+@login_required
 def user_page(name):
     return f'User page for: {escape(name)}'
 
-@app.route('/movies', methods=['GET', 'POST'])
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    form = SettingsForm()
+
+    if form.validate_on_submit():
+        if not current_user.is_authenticated:
+            flash('Must be signed in to change name.')
+            return redirect(url_for('index'))
+        
+        new_name = form.name.data
+        current_user.name = new_name
+        db.session.commit()
+
+    return render_template('settings.html', form=form)
+
+
+@movies_bp.route('/', methods=['GET', 'POST'])
 def movies():
     add_movie_form = AddMovieForm()
     delete_movie_form = DeleteMovieForm()
 
-    if request.method == 'POST':
-        if add_movie_form.validate_on_submit():
-            title = add_movie_form.title.data
-            year = add_movie_form.year.data
-        
-            movie = Movie(title=title, year=year)
-            db.session.add(movie)
-            db.session.commit()
-            flash('Item Created.')
-            return redirect(url_for('movies'))
-        
-        elif delete_movie_form.validate_on_submit():
-            print(f'Movie id is: {delete_movie_form.movie_id.data}')
-            movie_id = delete_movie_form.movie_id.data
-            movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
+    return render_template('movies.html', add_movie_form=add_movie_form, delete_movie_form=delete_movie_form)
 
-            if not movie:
-                flash('Movie not found.')
-                return redirect(url_for('movies'))
+@movies_bp.route('/delete', methods=['POST'])
+@login_required
+def delete_movie():
+    delete_movie_form = DeleteMovieForm()
 
-            db.session.delete(movie)
-            db.session.commit()
-            flash('Item deleted')
-            return redirect(url_for('movies'))
-        
-        elif "edit" in request.form:
-            movie_id = request.form.get('movie_id')
-            return redirect(url_for('edit', movie_id=movie_id))
-        
-    elif request.method == "GET":
-        return render_template('movies.html', add_movie_form=add_movie_form, delete_movie_form=delete_movie_form)
+    if delete_movie_form.validate_on_submit():
+        movie_id = delete_movie_form.movie_id.data
+        movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
 
-@app.route('/movies/edit/<int:movie_id>', methods=["GET", "POST"])
+        if not movie:
+            flash('Movie not found.')
+            return redirect(url_for('movies.movies'))
+
+        db.session.delete(movie)
+        db.session.commit()
+        flash('Item deleted')
+        return redirect(url_for('movies.movies'))
+    
+@movies_bp.route('/add', methods=['POST'])
+@login_required
+def add_movie():
+    add_movie_form = AddMovieForm()
+
+    if add_movie_form.validate_on_submit():
+        movie = Movie()
+        movie.title = add_movie_form.title.data
+        movie.year = add_movie_form.year.data
+        db.session.add(movie)
+        db.session.commit()
+        flash('Item added')
+        return redirect(url_for('movies.movies'))
+
+@movies_bp.route('/edit/<int:movie_id>', methods=["GET", "POST"])
 def edit(movie_id):
     movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
 
     if request.method == "POST":
+        if not current_user.is_authenticated:
+            flash('Sign in to edit movies.')
+            return redirect(url_for('movies.movies'))
+        
         title = request.form.get('title')
         year = request.form.get('year')
 
@@ -103,12 +228,11 @@ def edit(movie_id):
         movie.year = year
         db.session.commit()
 
-        link = url_for("movies")
+        link = url_for("movies.movies")
         flash(f'Successfully updated! Click <a href={link}>here</a> to return to the movies list.')
         return redirect(url_for('edit', movie_id=movie_id))
     
-    if request.method == "GET":
-        return render_template('edit.html')
+    return render_template('edit.html', movie=movie)
 
 
 @app.route('/games')
@@ -151,6 +275,8 @@ def inject_user():
     movie_list = db.session.execute(db.select(Movie)).scalars().all()
     return dict(user=user, movies=movie_list)
     
+# Set up movies blueprint
+app.register_blueprint(movies_bp)
 
 name = 'Evan Carlile'
 movies_data = [

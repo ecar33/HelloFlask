@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/login.css') }}" type="text/css">
+{% endblock %}
+{% block content %}
+<div class="footer-container">
+<form class="form-container" method="POST">
+    {{ form.hidden_tag() }}
+    <div>
+    {{ form.username.label }} {{ form.username(size=20) }}
+    </div>
+    <div>
+    {{ form.password.label }} {{ form.password(size=20) }}
+    </div>
+    <button class="btn" type="submit" name="login">Login</button>
+</form>
+</div>
+{% endblock %}

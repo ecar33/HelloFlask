@@ -6,6 +6,9 @@
 {% block content %}
     <h1>Index</h1>
     <p class="important">
+      {% if current_user.is_authenticated %}
+      Hello, {{ current_user.name }}
+      {% endif %}
       Welcome to my awesome homepage.
     </p>
     <img src="{{ url_for('static', filename='images/game_images/speed.png') }}">
