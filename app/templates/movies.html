@@ -24,7 +24,7 @@
                     <form method="GET" style="display:inline;" action="{{ url_for('.edit', movie_id=movie.id )}}">
                         <button class="btn edit" type="submit">Edit</button>
                     </form>
-                    <form method="POST" style="display:inline;" action="{{ url_for('.delete_movie') }}">
+                    <form method="POST" style="display:inline;" action="{{ url_for('.delete_movie', movie_id=movie.id) }}">
                         <div class="delete-button-container">
                             {{ delete_movie_form.hidden_tag() }}
                             {{ delete_movie_form.movie_id(value=movie.id) }}

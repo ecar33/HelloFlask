@@ -1,46 +1,24 @@
-from flask import Flask, render_template, request, redirect, flash, url_for, Blueprint
+from flask import render_template, request, redirect, flash, url_for, Blueprint
 from flask_wtf import FlaskForm
-from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import current_user, login_required, login_user, logout_user
 from wtforms import PasswordField, StringField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Length
 from markupsafe import escape
-from flask_sqlalchemy import SQLAlchemy
-import os
 import click
+from app import create_app, db
+from app.config import DevelopmentConfig
+from models import User, Movie
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.root_path, 'games.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'dev'
+app = create_app(DevelopmentConfig)
+
+with app.app_context():
+    class GameDetails(db.Model):
+        __table__ = db.Table('game_details', db.metadata, autoload_with=db.engine)
+
+    class GamesPlatforms(db.Model):
+        __table__ = db.Table("game_platforms", db.metadata, autoload_with=db.engine)
 
 movies_bp = Blueprint('movies', __name__, url_prefix='/movies')
-
-db: SQLAlchemy = SQLAlchemy(app)
-login_manager = LoginManager(app)
-
-@login_manager.user_loader
-def load_user(user_id):
-    user = db.session.execute(db.select(User).where(User.id == user_id)).scalars().first()
-    return user
-
-class User(db.Model, UserMixin):  
-    id = db.Column(db.Integer, primary_key=True) 
-    name = db.Column(db.String(20))
-    username = db.Column(db.String(20))
-    password_hash = db.Column(db.String(128))
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-    
-    def validate_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class Movie(db.Model): 
-    __tablename__ = "my_favorite_movies"
-    id = db.Column(db.Integer, primary_key=True) 
-    title = db.Column(db.String(60))  
-    year = db.Column(db.String(4))
 
 class AddMovieForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
@@ -176,15 +154,14 @@ def movies():
 
     return render_template('movies.html', add_movie_form=add_movie_form, delete_movie_form=delete_movie_form)
 
-@movies_bp.route('/delete', methods=['POST'])
+@movies_bp.route('/delete/<int:movie_id>', methods=['POST'])
 @login_required
-def delete_movie():
+def delete_movie(movie_id):
     delete_movie_form = DeleteMovieForm()
 
     if delete_movie_form.validate_on_submit():
-        movie_id = delete_movie_form.movie_id.data
         movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
-
+        
         if not movie:
             flash('Movie not found.')
             return redirect(url_for('movies.movies'))
@@ -222,7 +199,7 @@ def edit(movie_id):
 
         if not title or not year.isdigit() or len(year) != 4 or len(title) > 60:
             flash('Invalid input.')
-            return redirect(url_for('edit', movie_id=movie_id))
+            return redirect(url_for('movies.edit', movie_id=movie_id))
     
         movie.title = title
         movie.year = year
@@ -230,7 +207,7 @@ def edit(movie_id):
 
         link = url_for("movies.movies")
         flash(f'Successfully updated! Click <a href={link}>here</a> to return to the movies list.')
-        return redirect(url_for('edit', movie_id=movie_id))
+        return redirect(url_for('movies.edit', movie_id=movie_id))
     
     return render_template('edit.html', movie=movie)
 
@@ -248,20 +225,19 @@ def games():
 
     games_list = [item for sub_list in games_list_start for item in sub_list]
 
-    print(games_list)
     return render_template('games.html', game_details=games_list)
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('errors/404.html')
+    return render_template('errors/404.html'), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('errors/500.html')
+    return render_template('errors/500.html'), 500
 
 @app.errorhandler(400)
 def bad_request(e):
-    return render_template('errors/400.html')
+    return render_template('errors/400.html'), 400
 
 # To force a 500 http error for testing
 # @app.route('/force500')
@@ -292,7 +268,7 @@ movies_data = [
     {'title': 'The Pork of Music', 'year': '2012'},
 ]
 
-# To insert a list of dictionaries like so into a table:
+# # To insert a list of dictionaries like so into a table:
 # movies_table = db.Table(
 #     'my_favorite_movies',  # Name of the table in the database
 #     db.metadata,  # SQLAlchemy metadata
@@ -302,13 +278,10 @@ movies_data = [
 # db.session.commit()
 
 
-with app.app_context():
-    class GameDetails(db.Model):
-        __table__ = db.Table('game_details', db.metadata, autoload_with=db.engine)
-
-    class GamesPlatforms(db.Model):
-        __table__ = db.Table("games_platforms", db.metadata, autoload_with=db.engine)
+# for movie in movies_data:
+#     new_movie = Movie(title=movie['title'], year=movie['year'])
+#     db.session.add(new_movie)
+# db.session.commit()
 
 if __name__ == '__main__':
     app.run(debug=True)
-
