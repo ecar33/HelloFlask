@@ -2,32 +2,37 @@
 <html lang="en">
 <head>
     {% block head %}
-    <title>{{ user.name }}'s Watchlist</title>
+    <title>{{ name }}'s Watchlist</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}" type="text/css">
     {% endblock %}
 </head>
 <body>
-    <h2>{{ user.name }}'s Lists</h2>
+    <div style="display: flex;justify-content:space-between;">
+    <h2>{{ name }}'s Lists</h2>
+    {% if current_user.is_authenticated %}
+        <p style="display: flex;align-items:center;">User: {{ current_user.name }}</p>
+    {% endif %}
+    </div>
     <nav>
         <ul>
-            <li><a href="{{ url_for('login') }}">Login</a></li>
+            <li><a href="{{ url_for('auth.login') }}">Login</a></li>
             {% if current_user.is_authenticated %}
-                <li><a href="{{ url_for('logout') }}">Logout</a></li>
-                <li><a href="{{ url_for('settings') }}">Settings</a></li>
+                <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+                <li><a href="{{ url_for('main.settings') }}">Settings</a></li>
             {% endif %}
-            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('main.index') }}">Home</a></li>
             <li><a href="{{ url_for('movies.movies') }}">Movies</a></li>
-            <li><a href="{{ url_for('games') }}">Games</a></li>
+            <li><a href="{{ url_for('games.games') }}">Games</a></li>
         </ul>
     </nav>
     {% for message in get_flashed_messages() %}
     <div class="alert">{{ message|safe }}</div>
     {% endfor %}
-    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="content" style="display:flex;flex-direction:column;">{% block content %}{% endblock %}</div>
     <div id="footer" class="footer">
         {% block footer %}
-        &copy; Copyright 2024 by {{ current_user.name }}
+        &copy; Copyright 2024 by {{ name }}
         {% endblock %}
     </div>
 </body>

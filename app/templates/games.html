@@ -6,10 +6,10 @@
 {% block content %}
     <p>{{ game_details|length }} Titles</p>
     <ul class="game-list">
-        {% for name, released in game_details %}  
-        <li>{{ name }}
+        {% for game in game_details %}  
+        <li>{{ game.name }}
             <span class="float-right">
-                {{ released }}
+                {{ game.released }}
             </span>
         </li>  
         {% endfor %} 
