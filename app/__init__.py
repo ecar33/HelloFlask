@@ -35,19 +35,6 @@ def create_app(config=None):
         movie_list = db.session.execute(db.select(Movie)).scalars().all()
         return dict(name=name, movies=movie_list)
     
-
-    @app.errorhandler(404)
-    def page_not_found(e):
-        return render_template('errors/404.html'), 404
-
-    @app.errorhandler(500)
-    def internal_server_error(e):
-        return render_template('errors/500.html'), 500
-
-    @app.errorhandler(400)
-    def bad_request(e):
-        return render_template('errors/400.html'), 400
-    
     @app.cli.command()
     @click.option('--drop', is_flag=True, help='Create after drop.')
     def initdb(drop):
@@ -100,6 +87,18 @@ def create_app(config=None):
             password = click.prompt('Enter the correct password: ', hide_input=True, confirmation_prompt=True)
 
         click.echo("Done.")
+
+    @app.errorhandler(404)
+    def page_not_found(e):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        return render_template('errors/500.html'), 500
+
+    @app.errorhandler(400)
+    def bad_request(e):
+        return render_template('errors/400.html'), 400
         
     return app
 

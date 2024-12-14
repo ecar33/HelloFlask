@@ -1,5 +1,4 @@
 import unittest
-
 from app import create_app
 from app.extensions import db
 from app.config import TestingConfig
@@ -7,6 +6,7 @@ from app.models import GameDetails, Movie, User
 
 class WatchlistTestCase(unittest.TestCase):
 
+    # Setup run before every test
     def setUp(self):
         self.app = create_app(TestingConfig)
 
@@ -21,21 +21,26 @@ class WatchlistTestCase(unittest.TestCase):
 
             self.client = self.app.test_client() 
             self.runner = self.app.test_cli_runner()
-    
+
+    # Teardown run after every test
+    def tearDown(self):
+        with self.app.test_request_context():
+            db.session.remove()
+            db.drop_all()
+            db.session.close()
+
+    # Helper function to login
     def login(self):
         self.client.post('/login', data=dict(
             username='test',
             password='123'
         ), follow_redirects=True)
-    
+
+    # Helper function to log out
     def logout(self):
         self.client.post('/logout', follow_redirects=True)
-        
-    def tearDown(self):
-        with self.app.test_request_context():
-            db.drop_all()
-            db.session.close()
-    
+
+    # Testing app functionality
     def test_app_exist(self):
         self.assertIsNotNone(self.app)
 
@@ -181,6 +186,31 @@ class WatchlistTestCase(unittest.TestCase):
         data = response.get_data(as_text=True)
         self.assertIn('Name change successful.', data)
         self.assertIn('Test1', data)
+
+    # Testing CLI
+    def test_initdb_command(self):
+        result = self.runner.invoke(args=['initdb'])
+        self.assertIn('Initialized database.', result.output)
+
+    def test_admin_command(self):
+        with self.app.app_context():
+            db.drop_all()
+            db.create_all()
+            result = self.runner.invoke(args=['admin', '--username', 'grey', '--password', '123'])
+            self.assertIn('Creating user...', result.output)
+            self.assertIn('Done.', result.output)
+            self.assertEqual(User.query.count(), 1)
+            self.assertEqual(User.query.first().username, 'grey')
+            self.assertTrue(User.query.first().validate_password('123'))
+
+    def test_admin_command_update(self):
+        with self.app.app_context():
+            result = self.runner.invoke(args=['admin', '--username', 'peter', '--password', '456'])
+            self.assertIn('Updating user...', result.output)
+            self.assertIn('Done.', result.output)
+            self.assertEqual(User.query.count(), 1)
+            self.assertEqual(User.query.first().username, 'peter')
+            self.assertTrue(User.query.first().validate_password('456'))
 
 if __name__ == '__main__':
     unittest.main()
