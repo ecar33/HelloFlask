@@ -1,13 +1,27 @@
+import os
+import sys
 import click
 from flask import Config, Flask, render_template
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
 
-from app.config import TestingConfig
+from app.config import ProductionConfig, TestingConfig
 from app.models import Movie, User
 from app.extensions import db, login_manager
 
-def create_app(config=None):
+
+WIN = sys.platform.startswith('win')
+if WIN:
+    prefix = 'sqlite:///'
+else: 
+    prefix = 'sqlite:////'
+
+# Load environment variables
+load_dotenv()
+
+def create_app(config=ProductionConfig):
+
     # create and configure the app
     app = Flask(__name__)
 
@@ -15,6 +29,16 @@ def create_app(config=None):
         config = TestingConfig
     
     app.config.from_object(config)
+
+    if config == ProductionConfig:
+
+        db_file_path = os.path.join(os.path.dirname(app.root_path), os.getenv('DATABASE_FILE', 'data.db'))
+        
+        if WIN:
+            db_file_path = db_file_path.replace(os.path.sep, '/')
+
+        app.config['SQLALCHEMY_DATABASE_URI'] = prefix + db_file_path
+
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -31,7 +55,7 @@ def create_app(config=None):
     
     @app.context_processor
     def inject():
-        name = "Evan"
+        name = "ecar33"
         movie_list = db.session.execute(db.select(Movie)).scalars().all()
         return dict(name=name, movies=movie_list)
     

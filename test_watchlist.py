@@ -98,14 +98,14 @@ class WatchlistTestCase(unittest.TestCase):
     def test_movie_page(self):
         response = self.client.get('/movies', follow_redirects=True)
         data = response.get_data(as_text=True)
-        self.assertIn('Evan\'s List', data)
+        self.assertIn('ecar33\'s List', data)
         self.assertIn('Test Movie Title', data)
         self.assertEqual(response.status_code, 200)
     
     def test_games_page(self):
         response = self.client.get('/games', follow_redirects=True)
         data = response.get_data(as_text=True)
-        self.assertIn('Evan\'s List', data)
+        self.assertIn('ecar33\'s List', data)
         self.assertIn('Test Game Title', data)
         self.assertEqual(response.status_code, 200)
     
