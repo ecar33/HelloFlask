@@ -4,12 +4,11 @@
     {{ super() }}
 {% endblock %}
 {% block content %}
-    <h1>Index</h1>
-    <p class="important">
+    <h3>
       {% if current_user.is_authenticated %}
       Hello, {{ current_user.name }}
       {% endif %}
-      Welcome to my awesome homepage.
-    </p>
+    </h3>
+    <p class="important"> Welcome to my awesome homepage.</p>
     <img src="{{ url_for('static', filename='images/all_might.gif') }}">
 {% endblock %}

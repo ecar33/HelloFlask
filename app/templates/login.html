@@ -4,7 +4,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='styles/login.css') }}" type="text/css">
 {% endblock %}
 {% block content %}
-<div class="footer-container">
 <form class="form-container" method="POST">
     {{ form.hidden_tag() }}
     <div>
@@ -15,5 +14,11 @@
     </div>
     <button class="btn" type="submit" name="login">Login</button>
 </form>
+</div>
+<div>
+<p style="margin-top: 20px;margin-bottom: 0px;">Don't have an account?</p>
+<a href="{{ url_for('auth.signup') }}">
+    <button class="btn" style="margin-top: 5px;">Sign Up</button>
+</a>
 </div>
 {% endblock %}

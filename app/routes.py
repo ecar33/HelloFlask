@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from markupsafe import escape
-from app.forms import AddMovieForm, DeleteMovieForm, LoginForm, SettingsForm
+from app.forms import AddMovieForm, DeleteMovieForm, LoginForm, SettingsForm, SignupForm
 from app.models import GameDetails, Movie, User
 from app.extensions import db
 
@@ -18,8 +18,8 @@ def index():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
+        username = form.username.data.strip()
+        password = form.password.data.strip()
 
         user: User = db.session.execute(db.select(User).where(User.username == username)).scalars().first()
 
@@ -32,6 +32,26 @@ def login():
         return redirect(url_for("auth.login"))
         
     return render_template('login.html', form=form)
+
+@auth_bp.route('/signup', methods=["GET", "POST"])
+def signup():
+    form = SignupForm()
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        password = form.password.data.strip()
+        user: User = db.session.execute(db.select(User).where(User.username == username)).scalars().first()
+
+        if user:
+            flash(f'Username already exists, use a different one', 'error')
+            return redirect(url_for("auth.signup"))
+        else:
+            new_user = User(name=username, username=username)
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
+            flash('User succesfully created! Please sign in.', 'success')
+            return redirect(url_for("auth.login"))
+    return render_template('sign_up.html', form=form)
     
 @auth_bp.route('/logout')
 @login_required

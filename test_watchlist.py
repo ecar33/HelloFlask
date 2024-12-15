@@ -55,7 +55,6 @@ class WatchlistTestCase(unittest.TestCase):
 
         data = response.get_data(as_text=True)
         self.assertIn('Test sucessfully logged in.', data)
-        self.assertIn('Index', data)
         self.assertIn('Logout', data)
         self.assertIn('Settings', data)
 
@@ -109,7 +108,7 @@ class WatchlistTestCase(unittest.TestCase):
         self.assertIn('Test Game Title', data)
         self.assertEqual(response.status_code, 200)
     
-    def test_create_item(self):
+    def test_add_movie(self):
         self.login()
         response = self.client.post('/movies/add', data=dict(
             title='New Movie',
@@ -120,14 +119,21 @@ class WatchlistTestCase(unittest.TestCase):
         self.assertIn('New Movie', data)
 
         response = self.client.post('/movies/add', data=dict(
-            title='New Movie2',
-            year=''
+            title='New Movie 2',
+            year='200'
         ), follow_redirects=True)
         data = response.get_data(as_text=True)
         self.assertNotIn('Item added', data)
-        self.assertNotIn('New Movie2', data)
+        self.assertNotIn('New Movie 2', data)
+
+        response = self.client.post('/movies/add', data=dict(
+            title='',
+            year='1234'
+        ), follow_redirects=True)
+        data = response.get_data(as_text=True)
+        self.assertNotIn('Item added', data)
     
-    def test_delete_item(self):
+    def test_delete_movie(self):
         self.login()
         response = self.client.post('/movies/delete/1', follow_redirects=True)
         data = response.get_data(as_text=True)
@@ -137,7 +143,7 @@ class WatchlistTestCase(unittest.TestCase):
         data=response.get_data(as_text=True)
         self.assertNotIn('Item deleted', data)
 
-    def test_edit_item(self):
+    def test_edit_movie(self):
         self.login()
         response = self.client.post('/movies/edit/1', data=dict(
             title='New Movie Name',
@@ -165,6 +171,40 @@ class WatchlistTestCase(unittest.TestCase):
         self.assertNotIn('Delete', data)
         self.assertNotIn('Add', data)
     
+    def test_signup_form(self):
+        response = self.client.post('/signup', data=dict(
+            username='testuser',
+            password='12345678',
+            confirm_password='12345678'
+        ), follow_redirects=True)
+        data = response.get_data(as_text=True)
+        self.assertIn('User succesfully created', data)
+
+        response = self.client.post('/signup', data=dict(
+            username='testuser',
+            password='12345678',
+            confirm_password='12345678'
+        ), follow_redirects=True)
+        data = response.get_data(as_text=True)
+        self.assertNotIn('User succesfully created!', data)
+        self.assertIn('Username already exists, use a different one', data)
+
+        response = self.client.post('/signup', data=dict(
+            username='testuser',
+            password='123',
+            confirm_password='123'
+        ), follow_redirects=True)
+        data = response.get_data(as_text=True)
+        self.assertNotIn('User succesfully created!', data)
+
+        response = self.client.post('/signup', data=dict(
+            username='tr',
+            password='123456789',
+            confirm_password='1234578'
+        ), follow_redirects=True)
+        data = response.get_data(as_text=True)
+        self.assertNotIn('User succesfully created!', data)
+
     def test_logout(self):
         self.login()
         response = self.client.get('/logout', follow_redirects=True)
