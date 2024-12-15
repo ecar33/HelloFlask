@@ -1,20 +1,30 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, has_request_context, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from flask_limiter import Limiter
 from markupsafe import escape
 from app.forms import AddMovieForm, DeleteMovieForm, LoginForm, SettingsForm, SignupForm
 from app.models import GameDetails, Movie, User
-from app.extensions import db
+from app.extensions import db, limiter
 
 main_bp = Blueprint('main', __name__)
 auth_bp = Blueprint('auth', __name__)
 movies_bp = Blueprint('movies', __name__, url_prefix='/movies')
 games_bp = Blueprint('games', __name__, url_prefix='/games')
 
+def get_rate_limit_key():
+    if has_request_context():
+        if getattr(current_user, "is_authenticated", False):
+            return current_user.id 
+        else:
+            return request.remote_addr
+    return "global"
+
 @main_bp.route('/')
 def index():
     return render_template('index.html')
 
 @auth_bp.route('/login', methods=["GET", "POST"])
+@limiter.limit("100 per hour", key_func=get_rate_limit_key, methods=["POST"])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -34,6 +44,7 @@ def login():
     return render_template('login.html', form=form)
 
 @auth_bp.route('/signup', methods=["GET", "POST"])
+@limiter.limit("3 per day", key_func=get_rate_limit_key, methods=["POST"])
 def signup():
     form = SignupForm()
     if form.validate_on_submit():
@@ -62,6 +73,7 @@ def logout():
 
 @main_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
+@limiter.limit("10 per hour", key_func=get_rate_limit_key)
 def settings():
     form = SettingsForm()
     if form.validate_on_submit():
@@ -83,6 +95,7 @@ def movies():
 
 @movies_bp.route('/delete/<int:movie_id>', methods=['POST'])
 @login_required
+@limiter.limit("100 per hour", key_func=get_rate_limit_key)
 def delete_movie(movie_id):
     delete_movie_form = DeleteMovieForm()
 
@@ -100,6 +113,7 @@ def delete_movie(movie_id):
     
 @movies_bp.route('/add', methods=['POST'])
 @login_required
+@limiter.limit("10 per hour", key_func=get_rate_limit_key)
 def add_movie():
     add_movie_form = AddMovieForm()
 
@@ -114,6 +128,7 @@ def add_movie():
     return redirect(url_for('movies.movies'))
 
 @movies_bp.route('/edit/<int:movie_id>', methods=["GET", "POST"])
+@limiter.limit("30 per hour", key_func=get_rate_limit_key, methods=["POST"])
 def edit(movie_id):
     movie = db.session.execute(db.select(Movie).where(Movie.id == movie_id)).scalars().first()
 

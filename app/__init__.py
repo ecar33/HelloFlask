@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from app.config import ProductionConfig, TestingConfig
 from app.models import Movie, User
-from app.extensions import db, login_manager
+from app.extensions import db, login_manager, limiter
 
 
 WIN = sys.platform.startswith('win')
@@ -41,6 +41,7 @@ def create_app(config=ProductionConfig):
 
 
     db.init_app(app)
+    limiter.init_app(app)
     login_manager.init_app(app)
 
     # Import and register blueprints
